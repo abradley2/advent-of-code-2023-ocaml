@@ -1,0 +1,4 @@
+(executable
+ (public_name day_00)
+ (name main)
+ (libraries lib ocamlgraph bark base stdio))
