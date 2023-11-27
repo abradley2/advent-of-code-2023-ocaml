@@ -69,3 +69,8 @@ let repeat times el =
     if List.length elist |> Int.equal (abs times) then elist else repeat (el :: elist)
   in
   repeat []
+
+let from_opt default_val opt =
+  match opt with
+  | Some v -> v
+  | None -> default_val
