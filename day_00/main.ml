@@ -1,4 +1,3 @@
-open Base
 open Lib
 
 type instruction = Forward of int | Left of int | Right of int
@@ -21,7 +20,7 @@ let input_parser =
       one_of
         [ succeed (fun n -> Loop (n :: state))
           |= turn_parser
-          |. chomp_while (fun c -> Char.is_whitespace c || Char.equal c ',')
+          |. chomp_while (fun c -> Char.equal c ' ' || Char.equal c ',')
         ; endd (Problem "End") |> map (fun _ -> Done (List.rev state)) ] )
 
 module Visited = Stdlib.Set.Make (struct
@@ -73,7 +72,7 @@ let solve instruction_list ~return_on_repeat =
 let () =
   let input = Stdio.In_channel.read_all "./day_00/input.txt" in
   Bark.run input_parser input
-  |> Result.map ~f:(fun instructions_list ->
+  |> Result.map (fun instructions_list ->
          match get_part () with
          | 1 ->
              solve instructions_list ~return_on_repeat:false |> Int.to_string |> Stdio.print_endline
@@ -81,5 +80,5 @@ let () =
              unfold_instructions instructions_list
              |> solve ~return_on_repeat:true |> Int.to_string |> Stdio.print_endline
          | _ -> Stdio.print_endline "Invalid part number" )
-  |> Result.map_error ~f:(fun e -> dead_ends_to_string e |> Stdio.print_endline)
-  |> Stdlib.Result.fold ~ok:Fn.id ~error:Fn.id
+  |> Result.map_error (fun e -> dead_ends_to_string e |> Stdio.print_endline)
+  |> Result.fold ~ok:Fun.id ~error:Fun.id
