@@ -24,7 +24,7 @@ let turn_parser =
   |= one_of
        [ token (Token ("L", Problem "Left")) |> map (Fun.const L)
        ; token (Token ("R", Problem "Right")) |> map (Fun.const R) ]
-  |= Bark.int (Problem "Velocity Int")
+  |= int (Problem "Velocity Int")
 
 let input_parser =
   let open Bark in

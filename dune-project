@@ -24,7 +24,7 @@
   ocamlformat
   ocaml-lsp-server
   (containers
-   (>= 3.12.0))
+   (>= 3.12))
   (bark
    (>= 0.1.4))
   (stdio

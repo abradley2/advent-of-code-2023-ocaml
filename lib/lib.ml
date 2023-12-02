@@ -1,13 +1,11 @@
-open Base
-
-let get_arg_string () = Sys.get_argv () |> Array.to_list |> String.concat ~sep:" "
+let get_arg_string () = Sys.argv |> Array.to_list |> String.concat " "
 
 exception MissingArg of string
 
 let get_part () =
   let part = ref None in
-  Stdlib.Arg.parse
-    [("--part", Stdlib.Arg.Int (fun v -> part := Some v), "part to run")]
+  Arg.parse
+    [("--part", Arg.Int (fun v -> part := Some v), "part to run")]
     (fun _ -> ())
     (get_arg_string ()) ;
   match !part with
@@ -20,7 +18,7 @@ let dead_ends_to_string dead_ends =
   let open Bark in
   let rec loop dead_ends lines =
     match dead_ends with
-    | [] -> lines |> List.rev |> String.concat ~sep:"\nor "
+    | [] -> lines |> List.rev |> String.concat "\nor "
     | x :: xs ->
         let problem =
           match x.problem with
