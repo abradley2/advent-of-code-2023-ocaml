@@ -1,34 +1,31 @@
 open Lib
 
-module Game = struct
-  type color = Blue | Red | Green
+type color = Blue | Red | Green
 
-  type block_count = BlockCount of int * color
+type block_count = BlockCount of int * color
 
-  type round = Round of block_count list
+type round = Round of block_count list
 
-  type id = Id of int
+type id = Id of int
 
-  type t = id * round list
-end
+type game = Game of id * round list
 
 let game_parser =
   let open Bark in
-  succeed (fun game_id round_list -> (Game.Id game_id, round_list))
+  succeed (fun game_id round_list -> Game (Id game_id, round_list))
   |. keyword (Token ("Game", Problem "Expecting int for game number"))
   |. chomp_while (Char.equal ' ')
   |= int (Problem "Expecting int for game number")
 
 let block_count_parser =
   let open Bark in
-  succeed (fun num color -> Game.BlockCount (num, color))
+  succeed (fun num color -> BlockCount (num, color))
   |= int (Problem "Expecting int for cube color")
   |. spaces
   |= one_of
-       [ keyword (Token ("red", Problem "Expecting Red/Green/Blue")) |> map (fun _ -> Game.Red)
-       ; keyword (Token ("blue", Problem "Expecting Red/Green/Blue")) |> map (fun _ -> Game.Blue)
-       ; keyword (Token ("green", Problem "Expecting Red/Green/Blue")) |> map (fun _ -> Game.Green)
-       ]
+       [ keyword (Token ("red", Problem "Expecting Red/Green/Blue")) |> map (fun _ -> Red)
+       ; keyword (Token ("blue", Problem "Expecting Red/Green/Blue")) |> map (fun _ -> Blue)
+       ; keyword (Token ("green", Problem "Expecting Red/Green/Blue")) |> map (fun _ -> Green) ]
 
 let game_round_parser =
   let open Bark in
@@ -39,7 +36,7 @@ let game_round_parser =
                [ succeed (Loop (block_count :: game_round))
                  |. token (Token (",", Problem "Expecting comma delimiter"))
                  |. chomp_while (Char.equal ' ')
-               ; Done (Game.Round (block_count :: game_round |> List.rev)) |> succeed ] ) )
+               ; Done (Round (block_count :: game_round |> List.rev)) |> succeed ] ) )
 
 let game_rounds_parser =
   let open Bark in
@@ -52,7 +49,7 @@ let game_rounds_parser =
                  |. chomp_while (Char.equal ' ')
                ; Done (game_round :: game_rounds) |> succeed ] ) )
 
-let (input_parser : ('ctx, problem, Game.t list) Bark.parser) =
+let input_parser =
   let open Bark in
   loop [] (fun lines ->
       succeed (fun to_game game_rounds -> to_game game_rounds)
@@ -66,19 +63,19 @@ let (input_parser : ('ctx, problem, Game.t list) Bark.parser) =
                  |. token (Token ("\n", Problem "Expecting newline delimiter"))
                ; Done (line :: lines) |> succeed ] ) )
 
-let run_round (Game.Round round) =
+let run_round (Round round) =
   let rec run_round ~red ~green ~blue round =
     if red < 0 || green < 0 || blue < 0 then false
     else
       match round with
       | [] -> true
-      | Game.BlockCount (n, Game.Red) :: next -> run_round ~red:(red - n) ~green ~blue next
-      | Game.BlockCount (n, Game.Green) :: next -> run_round ~red ~green:(green - n) ~blue next
-      | Game.BlockCount (n, Game.Blue) :: next -> run_round ~red ~green ~blue:(blue - n) next
+      | BlockCount (n, Red) :: next -> run_round ~red:(red - n) ~green ~blue next
+      | BlockCount (n, Green) :: next -> run_round ~red ~green:(green - n) ~blue next
+      | BlockCount (n, Blue) :: next -> run_round ~red ~green ~blue:(blue - n) next
   in
   run_round ~red:12 ~green:13 ~blue:14 round
 
-let play_game ((id, rounds) : Game.t) =
+let play_game (Game (id, rounds)) =
   let rec play_game rounds =
     match rounds with
     | [] -> Some id
@@ -86,25 +83,25 @@ let play_game ((id, rounds) : Game.t) =
   in
   play_game rounds
 
-let solve_part_one (parsed_input : Game.t list) =
+let solve_part_one parsed_input =
   let score_game game =
     match play_game game with
-    | Some (Game.Id v) -> v
+    | Some (Id v) -> v
     | None -> 0
   in
   parsed_input |> List.fold_left (fun acc game -> acc + score_game game) 0 |> Int.to_string
 
-let run_round_pt2 (Game.Round round) =
+let run_round_pt2 (Round round) =
   let rec run_round_pt2 ~red ~blue ~green round =
     match round with
     | [] -> (red, blue, green)
-    | Game.BlockCount (n, Game.Red) :: next -> run_round_pt2 ~red:(max red n) ~green ~blue next
-    | Game.BlockCount (n, Game.Green) :: next -> run_round_pt2 ~red ~green:(max green n) ~blue next
-    | Game.BlockCount (n, Game.Blue) :: next -> run_round_pt2 ~red ~green ~blue:(max blue n) next
+    | BlockCount (n, Red) :: next -> run_round_pt2 ~red:(max red n) ~green ~blue next
+    | BlockCount (n, Green) :: next -> run_round_pt2 ~red ~green:(max green n) ~blue next
+    | BlockCount (n, Blue) :: next -> run_round_pt2 ~red ~green ~blue:(max blue n) next
   in
   run_round_pt2 ~red:0 ~green:0 ~blue:0 round
 
-let play_game_pt2 ((_, rounds) : Game.t) =
+let play_game_pt2 (Game (_, rounds)) =
   let rec play_game (r, b, g) rounds =
     match rounds with
     | [] -> r * b * g
@@ -114,7 +111,7 @@ let play_game_pt2 ((_, rounds) : Game.t) =
   in
   play_game (0, 0, 0) rounds
 
-let solve_part_two (parsed_input : Game.t list) =
+let solve_part_two parsed_input =
   parsed_input |> List.fold_left (fun acc game -> acc + play_game_pt2 game) 0 |> Int.to_string
 
 let () =
