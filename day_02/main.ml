@@ -94,11 +94,34 @@ let solve_part_one (parsed_input : Game.t list) =
   in
   parsed_input |> List.fold_left (fun acc game -> acc + score_game game) 0 |> Int.to_string
 
+let run_round_pt2 (Game.Round round) =
+  let rec run_round_pt2 ~red ~blue ~green round =
+    match round with
+    | [] -> (red, blue, green)
+    | Game.BlockCount (n, Game.Red) :: next -> run_round_pt2 ~red:(max red n) ~green ~blue next
+    | Game.BlockCount (n, Game.Green) :: next -> run_round_pt2 ~red ~green:(max green n) ~blue next
+    | Game.BlockCount (n, Game.Blue) :: next -> run_round_pt2 ~red ~green ~blue:(max blue n) next
+  in
+  run_round_pt2 ~red:0 ~green:0 ~blue:0 round
+
+let play_game_pt2 ((_, rounds) : Game.t) =
+  let rec play_game (r, b, g) rounds =
+    match rounds with
+    | [] -> r * b * g
+    | round :: next ->
+        let r', b', g' = run_round_pt2 round in
+        play_game (max r r', max b b', max g g') next
+  in
+  play_game (0, 0, 0) rounds
+
+let solve_part_two (parsed_input : Game.t list) =
+  parsed_input |> List.fold_left (fun acc game -> acc + play_game_pt2 game) 0 |> Int.to_string
+
 let () =
   let part = get_part ()
   and input = Stdio.In_channel.read_all "day_02/input.txt" |> Bark.run input_parser in
   match (part, input) with
   | _, Error dead_ends -> dead_ends_to_string dead_ends |> print_endline
   | 1, Ok parsed_input -> print_endline ("Part 1: " ^ solve_part_one parsed_input)
-  | 2, Ok _ -> print_endline "Part 2"
+  | 2, Ok parsed_input -> print_endline ("Part 2: " ^ solve_part_two parsed_input)
   | _ -> print_endline "Invalid part"
