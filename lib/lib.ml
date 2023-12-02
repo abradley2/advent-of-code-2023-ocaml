@@ -30,40 +30,6 @@ let dead_ends_to_string dead_ends =
   in
   loop dead_ends []
 
-module DigraphVertex = struct
-  type t = int * int
-end
-
-module DigraphEdge = struct
-  type t = int
-
-  let compare = compare
-
-  let hash = Hashtbl.hash
-
-  let equal = ( = )
-
-  let default = 0
-end
-
-module Digraph = Graph.Imperative.Digraph.AbstractLabeled (DigraphVertex) (DigraphEdge)
-
-module DigraphWeight = struct
-  type edge = Digraph.E.t
-
-  type t = int
-
-  let weight _ = 1
-
-  let compare _a _b = 0
-
-  let add = ( + )
-
-  let zero = 0
-end
-
-module DigraphPath = Graph.Path.Dijkstra (Digraph) (DigraphWeight)
-
 let repeat times el =
   let rec repeat elist =
     if List.length elist |> Int.equal (abs times) then elist else repeat (el :: elist)

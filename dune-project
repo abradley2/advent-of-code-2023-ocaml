@@ -1,4 +1,4 @@
-(lang dune 3.11)
+(lang dune 3.12)
 
 (name aoc_2023_ocaml)
 
@@ -20,15 +20,13 @@
   (ocaml
    (= 5.1.0))
   (dune
-   (= 3.11))
+   (= 3.12.1))
   ocamlformat
   ocaml-lsp-server
-  (ocamlgraph
-   (>= 2.1.0))
+  (containers
+   (>= 3.12.0))
   (bark
    (>= 0.1.4))
-  (base
-   (>= 0.16.3))
   (stdio
    (>= 0.16.0))))
 

@@ -35,7 +35,7 @@ let input_parser =
           |. chomp_while (fun c -> Char.equal c ' ' || Char.equal c ',')
         ; endd (Problem "End") |> map (fun _ -> Done (List.rev state)) ] )
 
-module Visited = Stdlib.Set.Make (struct
+module Visited = Set.Make (struct
   type t = int * int
 
   let compare (x1, y1) (x2, y2) =
