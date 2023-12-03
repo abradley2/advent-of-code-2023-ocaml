@@ -38,3 +38,13 @@ let from_opt default_val opt =
   match opt with
   | Some v -> v
   | None -> default_val
+
+let get_opt idx arr = if idx >= Array.length arr || idx < 0 then None else Some (Array.get arr idx)
+
+let opt_and_then fn opt = Option.map fn opt |> Option.join
+
+let res_and_then fn res = Result.map fn res |> Result.join
+
+let str_snoc c s = s ^ String.make 1 c
+
+let list_cons v l = List.cons l v
