@@ -47,4 +47,10 @@ let res_and_then fn res = Result.map fn res |> Result.join
 
 let str_snoc c s = s ^ String.make 1 c
 
-let list_cons v l = List.cons l v
+let rec pow a exp =
+  match exp with
+  | 0 -> 1
+  | 1 -> a
+  | n ->
+      let b = pow a (n / 2) in
+      b * b * if n mod 2 = 0 then 1 else a

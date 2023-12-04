@@ -1,0 +1,4 @@
+(executable
+ (public_name day_04)
+ (name main)
+ (libraries lib bark containers stdio))

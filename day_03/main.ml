@@ -99,7 +99,7 @@ let process_input_pt1 all_lines =
         values
         |> List.map (is_symbol_adjacent all_lines)
         |> List.fold_left
-             (fun acc cur -> Option.map (list_cons acc) cur |> Option.value ~default:acc)
+             (fun acc cur -> Option.map (Fun.flip List.cons acc) cur |> Option.value ~default:acc)
              []
         |> List.fold_left ( + ) 0
         |> fun total -> (total, values)
