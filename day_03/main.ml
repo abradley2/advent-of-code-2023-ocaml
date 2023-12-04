@@ -6,22 +6,42 @@ let is_symbol c = if (not (is_digit c)) && c <> '.' then Some c else None
 
 let dirs ~y_origin ~x_origin =
   List.map
-    (fun y_mod -> List.map (fun x_mod -> (y_origin + y_mod, x_origin + x_mod)) [0; 1; -1])
-    [0; 1; -1]
+    (fun y_mod -> List.map (fun x_mod -> (y_origin + y_mod, x_origin + x_mod)) [-1; 0; 1])
+    [-1; 0; 1]
   |> List.concat
 
 type ctx = Ctx of (int * int) list * string
 
-let is_part_adjacent ctx_list (part_row, part_col) =
-  ctx_list
-  |> List.filter (fun (Ctx (coords, _)) ->
-         coords
-         |> List.find_opt (fun (coord_row, coord_col) ->
-                Printf.printf "(%d, %d) =? (%d, %d)\n" part_row part_col coord_row coord_col ;
-                part_row == coord_row && part_col == coord_col )
-         |> Option.is_some )
-  |> List.map (fun (Ctx (_, digit_string)) -> int_of_string digit_string)
-  |> fun res -> if List.length res == 2 then Some (List.fold_left ( + ) 0 res) else None
+module CoordSet = Set.Make (struct
+  type t = int * int
+
+  let compare (x1, y1) (x2, y2) =
+    if Int.equal x1 x2 && Int.equal y1 y2 then 0
+    else if not (Int.equal x1 x2) then compare x1 x2
+    else compare y1 y2
+end)
+
+let is_part_adjacent ctx_list (gear_row, gear_col) =
+  let gear_set = CoordSet.of_list (dirs ~y_origin:gear_row ~x_origin:gear_col) in
+  let rec is_part_adjacent ctx_list matches =
+    match ctx_list with
+    | [] -> matches
+    | Ctx (coords, digit_string) :: next_ctx_list -> (
+        let value = int_of_string digit_string in
+        let has_match =
+          if CoordSet.of_list coords |> CoordSet.inter gear_set |> CoordSet.is_empty |> not then
+            Some value
+          else None
+        in
+        match has_match with
+        | Some m -> is_part_adjacent next_ctx_list (m :: matches)
+        | None -> is_part_adjacent next_ctx_list matches )
+  in
+  is_part_adjacent ctx_list []
+  |> fun res ->
+  match res with
+  | [x; y] -> Some (x * y)
+  | _ -> None
 
 let is_adjacent_to ~comparator all_lines (Ctx (row_col_list, digit_str)) =
   let rec is_adjacent_to row_col_list =
