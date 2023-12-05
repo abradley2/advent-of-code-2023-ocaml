@@ -57,11 +57,17 @@ let process_input_pt_1 parsed_input =
   in
   process_input_pt_1 parsed_input ~results:[]
 
+module SuperSet = struct
+  include Set.Make (Int)
+  include List
+end
+
 let rec process_card_result ~idx ~indexed_card_results card_result =
   let my_result = card_result.match_count in
+  let next = Array.sub indexed_card_results (idx + 1) card_result.match_count in
   let next_result =
-    Array.sub indexed_card_results idx (idx + card_result.match_count + 1)
-    |> Array.map (process_card_result ~idx ~indexed_card_results)
+    next
+    |> Array.mapi (fun i -> process_card_result ~idx:(idx + i + 1) ~indexed_card_results)
     |> Array.fold_left ( + ) 0
   in
   my_result + next_result
@@ -75,7 +81,7 @@ let process_input_pt_2 (card_results : card_result list) =
         process_input_pt_2 next ~idx:(idx + 1)
           ~count:(count + process_card_result ~indexed_card_results card_result ~idx)
   in
-  process_input_pt_2 card_results ~idx:0 ~count:0
+  process_input_pt_2 card_results ~idx:0 ~count:(List.length card_results)
 
 let () =
   let input = Stdio.In_channel.read_all "day_04/input.txt" and part = get_part () in
