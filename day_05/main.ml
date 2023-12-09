@@ -9,15 +9,36 @@ module Range = struct
 
   type t = dest * src * len
 
-  let in_src_range sut ((_, Src src_val, Len len) : t) =
-    if sut >= src_val && sut < src_val + len then Some sut else None
-
-  let in_dst_range sut ((Dest dest_val, _, Len len) : t) =
-    if sut >= dest_val && sut < dest_val + len then Some sut else None
+  let in_src_range sut ((Dest dest_val, Src src_val, Len len) : t) =
+    if sut >= src_val && sut < src_val + len then Some (Base.List.range dest_val len) else None
 
   let make dest src len : t = (dest, src, len)
 end
 
+module String_map = Map.Make (String)
+
+module Range_map = struct
+  type src_key = Src_key of string
+
+  type dst_key = Dst_key of string
+
+  module Src_map = Map.Make (struct
+    type t = src_key
+
+    let compare (Src_key a) (Src_key b) = compare a b
+  end)
+
+  type t = (dst_key * Range.t list) Src_map.t
+end
+
+module Pair_set = Set.Make (struct
+  type t = string * int
+
+  let compare (src_key1, src_val1) (src_key2, src_val2) =
+    compare (src_key1 ^ string_of_int src_val1) (src_key2 ^ string_of_int src_val2)
+end)
+
+module Int_set = Set.Make (Int)
 module String_set = Set.Make (String)
 module String_map = Map.Make (String)
 
@@ -78,32 +99,42 @@ let input_parser =
                     ranges_parser |> map (fun ranges -> Loop ((map_to, ranges) :: groups)) )
            ; endd (Problem "Expecting EOF") |> map (fun _ -> Done (List.rev groups)) ] )
 
-let run_through_ranges cur_val input (cur_dest, (ranges : Range.t list)) =
+let run_through_ranges src_key cur_val input (_, (ranges : Range.t list)) =
   let src_matches =
-    List.map (fun range -> Range.in_src_range cur_val range |> Option.value ~default:cur_val) ranges
+    List.map
+      (fun range -> Range.in_src_range cur_val range |> Option.value ~default:[cur_val])
+      ranges
+    |> List.flatten
   in
-  let dst_matches =
-    List.map (fun range -> Range.in_dst_range cur_val range |> Option.value ~default:cur_val) ranges
-  in
-  let next = String_map.find_opt cur_dest input in
-  [1]
+  let next = String_map.find_opt src_key input in
+  match next with
+  | None -> Done src_matches
+  | Some (next_dest, next_ranges) -> Loop (next_dest, next_ranges, src_matches)
 
-let run_seeds seeds input =
-  let rec run_seeds seeds ~results =
-    match seeds with
+let run_pairs pairs input =
+  let rec run_pairs pairs ~results =
+    match pairs with
     | [] -> results
-    | seed :: next ->
-        run_seeds next
-          ~results:
-            (List.append results (run_through_ranges seed input (String_map.find "seed" input)))
+    | (src_key, pair_val) :: next -> (
+        Printf.printf "%s, %d\n" src_key pair_val ;
+        let next_result =
+          run_through_ranges src_key pair_val input (String_map.find src_key input)
+        in
+        match next_result with
+        | Done next_result -> run_pairs next ~results:(List.append results next_result)
+        | Loop (next_src_key, _, next_vals) ->
+            let next_pairs = List.map (fun next_val -> (next_src_key, next_val)) next_vals in
+            let deduped = Pair_set.of_list (List.append next next_pairs) |> Pair_set.to_list in
+            run_pairs deduped ~results )
   in
-  run_seeds seeds ~results:[]
+  run_pairs pairs ~results:[]
 
 let format_input (input : ((string * string) * Range.t list) list) =
   let rec format_input input ~formatted =
     match input with
     | [] -> formatted
     | ((src_val, dest_val), range) :: next ->
+        Printf.printf "%s -> %s\n" src_val dest_val ;
         format_input next ~formatted:(String_map.add src_val (dest_val, range) formatted)
   in
   format_input input ~formatted:String_map.empty
@@ -113,6 +144,7 @@ let () =
   match Bark.run input_parser input with
   | Ok (seeds, range_map_list) ->
       let formatted = format_input range_map_list in
-      let results = run_seeds seeds formatted in
-      print_endline "Hello"
+      let results = run_pairs (List.map (fun pair_val -> ("seed", pair_val)) seeds) formatted in
+      let smallest = List.fold_left (fun acc cur -> min acc cur) (List.hd results) results in
+      print_endline (string_of_int smallest)
   | Error dead_ends -> print_endline (dead_ends_to_string dead_ends)

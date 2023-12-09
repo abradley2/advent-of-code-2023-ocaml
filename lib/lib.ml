@@ -54,3 +54,5 @@ let rec pow a exp =
   | n ->
       let b = pow a (n / 2) in
       b * b * if n mod 2 = 0 then 1 else a
+
+type ('state, 'a) step = Loop of 'state | Done of 'a
