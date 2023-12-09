@@ -30,13 +30,9 @@ module Range_map = struct
 
   type t = (dst_key * Range.t list) M.t
 
-  (* let make l : t = M.of_list l *)
-
   let add k v (t : t) : t = M.add k v t
 
   let find k (t : t) = M.find k t
-
-  (* let find_opt k (t : t) = M.find_opt k t *)
 
   let empty : t = M.empty
 end
@@ -108,28 +104,25 @@ let input_parser =
                     ranges_parser |> map (fun ranges -> Loop ((map_to, ranges) :: groups)) )
            ; endd (Problem "Expecting EOF") |> map (fun _ -> Done (List.rev groups)) ] )
 
-let run_through_ranges cur_val (Range_map.Dst_key dest_key) (ranges : Range.t list) =
-  print_endline (string_of_int cur_val) ;
-  print_endline dest_key ;
-  let src_matches =
-    List.map (fun range -> Range.in_src_range cur_val range |> Option.value ~default:cur_val) ranges
+let rec run_through_ranges (Range_map.Src_key src_key) (range_map : Range_map.t) src_val =
+  let Range_map.Dst_key next_dst_key, ranges =
+    Range_map.find (Range_map.Src_key src_key) range_map
   in
-  match dest_key with
-  | "location" -> Done src_matches
-  | _ -> Loop (src_matches |> List.map (fun src_match -> (Range_map.Src_key dest_key, src_match)))
+  let next_src_val =
+    List.find_map (fun range -> Range.in_src_range src_val range) ranges
+    |> Option.value ~default:src_val
+  in
+  match next_dst_key with
+  | "location" -> next_src_val
+  | _ -> run_through_ranges (Range_map.Src_key next_dst_key) range_map next_src_val
 
 let run_pairs pairs (range_map : Range_map.t) =
   let rec run_pairs pairs ~results =
     match pairs with
     | [] -> results
-    | (src_key, pair_val) :: next -> (
-        let dst_key, ranges = Range_map.find src_key range_map in
-        let next_result = run_through_ranges pair_val dst_key ranges in
-        match next_result with
-        | Done next_result -> run_pairs next ~results:(List.append results next_result)
-        | Loop next_pairs ->
-            let deduped = Pair_set.of_list (List.append next next_pairs) |> Pair_set.to_list in
-            run_pairs (List.append next deduped) ~results )
+    | (src_key, pair_val) :: next ->
+        let next_results = run_through_ranges src_key range_map pair_val in
+        run_pairs next ~results:(List.cons next_results results)
   in
   run_pairs pairs ~results:[]
 
@@ -139,20 +132,20 @@ let format_input (input : ((string * string) * Range.t list) list) =
     match input with
     | [] -> formatted
     | ((src_val, dest_val), range) :: next ->
-        Printf.printf "%s -> %s\n" src_val dest_val ;
         format_input next ~formatted:(add (Src_key src_val) (Dst_key dest_val, range) formatted)
   in
   format_input input ~formatted:empty
+
+let smallest_val l = List.fold_left (fun acc cur -> min acc cur) (List.hd l) l
 
 let () =
   let input = Stdio.In_channel.read_all "day_05/input.txt" in
   match Bark.run input_parser input with
   | Ok (seeds, range_map_list) ->
-      print_endline "formatting input" ;
       let range_map = format_input range_map_list in
-      print_endline "got range map" ;
       let result =
         run_pairs (List.map (fun seed -> (Range_map.Src_key "seed", seed)) seeds) range_map
+        |> smallest_val
       in
-      print_endline (String.concat "\n" (List.map string_of_int result))
+      print_endline (string_of_int result)
   | Error dead_ends -> print_endline (dead_ends_to_string dead_ends)
